@@ -43,7 +43,7 @@ jobs:
             # Virtual environment setup
             if [ -d 'venv' ]; then
               source venv/bin/activate
-            else
+            else 
               python3 -m venv venv
               source venv/bin/activate
               pip install --upgrade pip
