@@ -16,10 +16,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Set up SSH
+      # 2️⃣ Setup SSH
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          chmod 700 ~/.ssh
+          ssh-keyscan -H ${{ secrets.YOUR_EC2_PUBLIC_IP }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      # 3️⃣ Deploy to EC2
       - name: Deploy to EC2
         run: |
-            ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.YOUR_EC2_PUBLIC_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.YOUR_EC2_PUBLIC_IP }} << 'EOF'
             cd /home/ec2-user/AWSblog
 
             # Pull latest code from main
@@ -27,19 +37,19 @@ jobs:
 
             # Virtual environment setup
             if [ -d 'venv' ]; then
-                source venv/bin/activate
+              source venv/bin/activate
             else
-                python3 -m venv venv
-                source venv/bin/activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
+              python3 -m venv venv
+              source venv/bin/activate
+              pip install --upgrade pip
+              pip install -r requirements.txt
             fi
 
             # Restart Flask app
             if systemctl list-units --full -all | grep -Fq 'awsblog.service'; then
-                sudo systemctl restart awsblog.service
+              sudo systemctl restart awsblog.service
             else
-                pkill -f 'python3 app.py' || true
-                nohup python3 app.py > flask.log 2>&1 &
+              pkill -f 'python3 app.py' || true
+              nohup python3 app.py > flask.log 2>&1 &
             fi
-        EOF
+            EOF
