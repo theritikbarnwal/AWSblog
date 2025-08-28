@@ -30,11 +30,6 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.YOUR_EC2_PUBLIC_IP }} << 'EOF'
             cd /home/ec2-user/AWSblog
 
-            # Reset repo to clean state & pull latest
-            git reset --hard
-            git clean -fd
-            git pull origin main
-
             # Setup virtual environment
             if [ -d 'venv' ]; then
               source venv/bin/activate
@@ -53,4 +48,10 @@ jobs:
               pkill -f 'python3 app.py' || true
               nohup python3 app.py > flask.log 2>&1 &
             fi
+
+            # Reset repo to clean state & pull latest
+            git reset --hard
+            git clean -fd
+            git pull origin main
+
           EOF
