@@ -33,6 +33,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.YOUR_EC2_PUBLIC_IP }} "
             cd /home/ec2-user/AWSblog
 
+            
             # Pull latest code from main
             git pull origin main
 
