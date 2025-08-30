@@ -48,3 +48,5 @@ jobs:
             # Restart Flask app with systemd
             sudo systemctl restart awsblog.service
           EOF
+
+          
