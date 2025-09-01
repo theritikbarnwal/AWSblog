@@ -10,29 +10,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Connect to EC2 and Deploy
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_SSH_KEY }}
-          username: ec2-user
-          key: ${{ secrets.YOUR_EC2_PUBLIC_IP }}
-          script: |
-            cd /home/ec2-user
-            # Remove old repo if exists
-            rm -rf AWSblog
-            # Clone fresh repo
-            git clone https://github.com/theritikbarnwal/AWSblog.git
-            cd AWSblog
-            # Create venv if not exists
-            if [ ! -d "venv" ]; then
+      # 2️⃣ Setup SSH
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa 
+          chmod 600 ~/.ssh/id_rsa
+
+          # Add EC2 host to known_hosts (ignore error if unreachable)
+          ssh-keyscan -H ${{ secrets.YOUR_EC2_PUBLIC_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          chmod 644 ~/.ssh/known_hosts
+
+      # 3️⃣ Deploy to EC2
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.YOUR_EC2_PUBLIC_IP }} << 'EOF'
+            cd /home/ec2-user/AWSblog
+            git reset --hard
+            git clean -fd
+            git pull origin main
+
+            if [ -d 'venv' ]; then
+              source venv/bin/activate
+              pip install -r requirements.txt
+            else
               python3 -m venv venv
+              source venv/bin/activate
+              pip install --upgrade pip
+              pip install -r requirements.txt
             fi
-            source venv/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
-            # Restart your app service (Gunicorn, Flask, etc.)
-            # Example:
-            # sudo systemctl restart myflaskapp
+
+            if systemctl list-units --full -all | grep -Fq 'awsblog.service'; then
+              sudo systemctl restart awsblog.service
+            else
+              pkill -f 'python3 app.py' || true
+              nohup python3 app.py > flask.log 2>&1 &
+            fi
+          EOF
+          EOF
