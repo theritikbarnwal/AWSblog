@@ -29,12 +29,7 @@ jobs:
           ssh-keyscan -H ${{ secrets.YOUR_EC2_PUBLIC_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 644 ~/.ssh/known_hosts
 
-      # 3️⃣ Test SSH Connection
-      - name: Test SSH Connection
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.YOUR_EC2_PUBLIC_IP }} "echo ✅ Connected successfully"
-
-      # 4️⃣ Deploy to EC2
+      # 3️⃣ Deploy to EC2
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.YOUR_EC2_PUBLIC_IP }} << 'EOF'
