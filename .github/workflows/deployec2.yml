@@ -1,30 +1,39 @@
-name: Deploy to EC2
+name: CICD PIPELINE
 
 on:
   push:
     branches:
-      - main   # change if you use another branch
+      - main   # 🚀 Change this to your deployment branch if different
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Setup SSH
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
       - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.YOUR_EC2_PUBLIC_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
             cd /home/ec2-user/cicd
-            # Remove old repo if exists
+
+            # Remove old repo
             rm -rf AWSblog
+
             # Clone fresh repo
             git clone https://github.com/theritikbarnwal/AWSblog.git
-            cd AWSblog   # ✅ Go inside cloned repo
+            cd AWSblog
 
+            # Setup venv
             if [ -d 'venv' ]; then
               source venv/bin/activate
               pip install -r requirements.txt
@@ -35,6 +44,7 @@ jobs:
               pip install -r requirements.txt
             fi
 
+            # Restart service or run manually
             if systemctl list-units --full -all | grep -Fq 'awsblog.service'; then
               sudo systemctl restart awsblog.service
             else
