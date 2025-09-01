@@ -29,10 +29,13 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@${{ secrets.YOUR_EC2_PUBLIC_IP }} << 'EOF'
+            script: |
             cd /home/ec2-user/cicd
-            git reset --hard
-            git clean -fd
-            git pull origin main
+            # Remove old repo if exists
+            rm -rf AWSblog
+            # Clone fresh repo
+            git clone https://github.com/theritikbarnwal/AWSblog.git
+            cd cicd
 
             if [ -d 'venv' ]; then
               source venv/bin/activate
