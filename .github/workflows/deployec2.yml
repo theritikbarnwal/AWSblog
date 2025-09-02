@@ -35,6 +35,9 @@ jobs:
             git clone https://github.com/theritikbarnwal/AWSblog.git
             cd AWSblog
 
+            # Copy .env from backup
+            cp /home/ec2-user/.env .env
+
             # Setup venv
             if [ -d 'venv' ]; then
               source venv/bin/activate
