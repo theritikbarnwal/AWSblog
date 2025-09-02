@@ -1,8 +1,9 @@
-from flask import Flask, request, render_template, url_for, redirect, session
+from flask import Flask, request, render_template, url_for, redirect, session, jsonify
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 import os
 
 # Load environment variables
@@ -30,10 +31,23 @@ try:
 except Exception as e:
     print("❌ MongoDB connection failed:", e)
 
+# Authentication decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Helper function to check user login status
+def is_user_logged_in():
+    return 'user' in session
+
 # Routes
 @app.route('/')
 def landing():
-    return render_template('landing.html')
+    return render_template('landing.html', user_logged_in=is_user_logged_in())
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -82,6 +96,7 @@ def login():
                 if user:
                     if check_password_hash(user.get('password'), password):
                         session['user'] = email
+                        session['user_id'] = str(user['_id'])
                         return redirect(url_for('welcome'))
                     else:
                         message = "Invalid email or password."
@@ -96,15 +111,13 @@ def login():
     return render_template('login.html', message=message, category=category)
 
 @app.route('/welcome')
+@login_required
 def welcome():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    return render_template('welcome.html')
+    return render_template('welcome.html', user_email=session['user'])
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
-    if 'user' not in session:
-        return redirect(url_for('login'))
     return render_template('dash.html')
 
 @app.route('/forgot', methods=['GET', 'POST'])
@@ -166,19 +179,34 @@ def reset():
 
 @app.route('/tutorials')
 def tutorials():
-    return render_template('tutorial.html')
+    return render_template('tutorial.html', user_logged_in=is_user_logged_in())
+
+@app.route('/tutorials/ec2')
+@login_required
+def ec2_tutorial():
+    return render_template('tutorials/ec2.html', user_email=session['user'])
+
+@app.route('/tutorials/s3')
+@login_required
+def s3_tutorial():
+    return render_template('tutorials/s3.html', user_email=session['user'])
+
+@app.route('/tutorials/lambda')
+@login_required
+def lambda_tutorial():
+    return render_template('tutorials/lambda.html', user_email=session['user'])
 
 @app.route('/news')
 def news():
-    return render_template('news.html')
+    return render_template('news.html', user_logged_in=is_user_logged_in())
 
 @app.route('/contact')
 def contact():
-    return render_template('contact.html')
+    return render_template('contact.html', user_logged_in=is_user_logged_in())
 
 @app.route('/about')
 def about():
-    return render_template('about.html')
+    return render_template('about.html', user_logged_in=is_user_logged_in())
 
 @app.route('/logout')
 def logout():
@@ -186,6 +214,10 @@ def logout():
     session.pop('user_id', None)
     session.pop('reset_email', None)
     return redirect(url_for('landing'))
+
+@app.errorhandler(401)
+def unauthorized(error):
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000,debug=True)
