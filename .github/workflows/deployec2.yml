@@ -3,7 +3,7 @@ name: CICD PIPELINE
 on:
   push:
     branches:
-      - main   # 🚀 Change if your deploy branch is different
+      - main   # 🚀 Change this if your deploy branch is different
 
 jobs:
   deploy:
@@ -26,7 +26,7 @@ jobs:
             set -e
             cd /home/ec2-user/cicd
 
-            # Remove old repo
+            # Remove old repo if exists
             rm -rf AWSblog
 
             # Clone fresh repo
