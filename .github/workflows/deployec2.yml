@@ -28,7 +28,7 @@ jobs:
             mkdir -p /home/ec2-user/cicd
             cd /home/ec2-user/cicd
 
-            # Remove old repo
+            # Remove old repo 
             rm -rf AWSblog
 
             # Clone fresh repo
